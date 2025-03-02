@@ -7,13 +7,6 @@
 
 BlackBox* blackbox;
 
-// These functions are called when the buttons are pressed
-void on_up() {}
-void on_down() {}
-void on_left() {}
-void on_right() {}
-void on_select() {}
-
 // These functions are called repeatedly
 void on_timeout_1() {}
 void on_timeout_2() {}
@@ -53053,6 +53046,8 @@ int timeframe = 20;
 int sound_time = time_sounds[0];
 int current_sound = 0;
 
+int running = 1;
+
 void draw_frame(int current_frame)
 {
   for(int l = 0; l < 8; ++l)
@@ -53074,11 +53069,11 @@ void draw_frame(int current_frame)
     }
 }
 
-void change_frame()
+void change_frame(int change)
 {
   if(current_frame < max_frame){
     timeframe = time+20;
-    current_frame = current_frame+1;
+    current_frame = change;
   }
 }
 
@@ -53086,21 +53081,68 @@ void play_sound(){
   blackbox.piezo.tone( sounds[current_sound] );
 }
 
+void on_select(){
+  running = running*-1;
+}
+// These functions are called when the buttons are pressed
+void go_forward(int mov) {
+  if(current_frame+mov < 6572){
+    time += mov;
+    current_sound += mov;
+    sound_time = time_sounds[current_sound];
+    current_frame += mov;
+    change_frame(current_frame+mov);
+    draw_frame(current_frame);
+  }
+}
+void go_back(int mov) {
+  if(current_frame-mov > 0){
+    time -= mov;
+    current_sound -= mov;
+    sound_time = time_sounds[current_sound];
+    current_frame -= mov;
+    change_frame(current_frame-mov);
+  }
+  else{
+    time = 0;
+    current_sound = 0;
+    sound_time = time_sounds[0];
+    change_frame(0);
+  }
+  draw_frame(current_frame);
+}
+void on_up() {
+  go_forward(10);
+}
+void on_down() {
+  go_back(10);
+}
+void on_left() {
+  go_forward(10);
+}
+void on_right() {
+  go_back(10);
+}
+
 // Your main loop goes here!
 void main() {
   while (1) {
-    
-    play_sound();
-    
-    time = time + 1;
-    sound_time -= 0.00009;
-    if(sound_time <= 0){
-      sound_time = time_sounds[current_sound];
-      current_sound += 1;
+    if(running == 1){
+      play_sound();
+      
+      time += 1;
+      sound_time -= 0.00009;
+      if(sound_time <= 0){
+        current_sound += 1;
+        sound_time = time_sounds[current_sound];
+      }
+      if(time >= timeframe){
+        draw_frame(current_frame);
+        change_frame(current_frame+1);
+      }
     }
-    if(time >= timeframe){
-      draw_frame(current_frame);
-      change_frame();
+    else{
+      blackbox.piezo.no_tone();
     }
   }
 }
